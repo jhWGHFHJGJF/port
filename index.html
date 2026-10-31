@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#05010f">
+<meta name="description" content="Cosmic 3D Portfolio — интерактивная вселенная с ядром-аватаром и орбитальными станциями.">
+<title>NOVA — Cosmic 3D Portfolio</title>
+
+<!-- Шрифты -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Tailwind: используется как утилитарный слой для разметки оверлея -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+          body: ['Inter', 'system-ui', 'sans-serif']
+        }
+      }
+    }
+  };
+</script>
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- =====================================================================
+     1. ПРЕЛОАДЕР
+     Рисуется сразу, до Three.js. Прогресс привязан к реальным этапам
+     инициализации, а не к таймеру.
+     ===================================================================== -->
+<div id="preloader" class="preloader" role="status" aria-live="polite">
+
+  <div class="preloader-mark" aria-hidden="true">
+    <span class="mark-ring"></span>
+    <span class="mark-core"></span>
+  </div>
+
+  <div class="preloader-body">
+    <p class="preloader-brand">N O V A</p>
+    <div class="bar" aria-hidden="true"><div class="bar-fill" id="barFill"></div></div>
+    <div class="preloader-meta">
+      <span id="loadLabel">Инициализация</span>
+      <span id="loadPercent">0%</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- =====================================================================
+     2. СЦЕНА
+     ===================================================================== -->
+<div id="scene-root" aria-hidden="true">
+  <div id="warp-flash" class="warp-flash"></div>
+</div>
+
+<!-- =====================================================================
+     3. FALLBACK БЕЗ WEBGL
+     ===================================================================== -->
+<div id="fallback" class="fallback" hidden>
+  <div class="fallback-stars" aria-hidden="true"></div>
+  <div class="fallback-card">
+    <p class="fallback-mark">N O V A</p>
+    <h1>Космос не открылся</h1>
+    <p class="fallback-text">
+      Ваш браузер не поддерживает WebGL 2 — а без него трёхмерную сцену
+      не отрисовать. Ниже — обычная версия портфолио.
+    </p>
+
+    <div class="fallback-links">
+      <a href="#projects">Проекты</a>
+      <a href="#skills">Навыки</a>
+      <a href="#contacts">Контакты</a>
+    </div>
+
+    <div class="fallback-grid">
+      <article id="projects">
+        <h2>Проекты</h2>
+        <p>Интерфейсы, которые не приходится объяснять. Аналитические панели, редакторы,
+           лендинги с характером — от прототипа до продакшена.</p>
+      </article>
+      <article id="skills">
+        <h2>Навыки</h2>
+        <p>WebGL и Three.js, React, TypeScript, Node, шейдеры, анимация,
+           типографика и внимание к 16 миллисекундам на кадр.</p>
+      </article>
+      <article id="contacts">
+        <h2>Контакты</h2>
+        <p>Пишите: <a href="mailto:hello@nova.studio">hello@nova.studio</a></p>
+      </article>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================================
+     4. UI ОВЕРЛЕЙ
+     ===================================================================== -->
+<div id="ui" class="ui" aria-hidden="true">
+
+  <!-- верхняя панель -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">NOVA</span>
+      <span class="brand-tag">cosmic portfolio</span>
+    </div>
+
+    <div class="topbar-actions">
+      <button id="soundToggle" class="icon-btn" type="button" aria-pressed="false" aria-label="Включить звук">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9v6h3.5L12 19V5L7.5 9H4z"/>
+          <path id="soundWaves" d="M16 8.5a5 5 0 0 1 0 7M18.8 6a8.5 8.5 0 0 1 0 12" opacity=".35"/>
+          <path id="soundMute" d="M16 9l5 6M21 9l-5 6" opacity="0"/>
+        </svg>
+      </button>
+
+      <button id="helpToggle" class="icon-btn" type="button" aria-label="Подсказки">?</button>
+    </div>
+  </header>
+
+  <!-- нижняя подсказка -->
+  <div class="hint" id="hint">
+    <span class="hint-key">клик</span>
+    <span>по ядру, чтобы открыть станцию</span>
+  </div>
+
+  <!-- меню после раскрытия ядра -->
+  <nav class="menu" id="menu" hidden>
+    <button class="menu-item" data-goto="projects" type="button">
+      <span class="menu-index">01</span>
+      <span class="menu-title">Проекты</span>
+    </button>
+    <button class="menu-item" data-goto="skills" type="button">
+      <span class="menu-index">02</span>
+      <span class="menu-title">Навыки</span>
+    </button>
+    <button class="menu-item" data-goto="contacts" type="button">
+      <span class="menu-index">03</span>
+      <span class="menu-title">Контакты</span>
+    </button>
+  </nav>
+
+  <!-- кнопка возврата -->
+  <button class="back-btn" id="backBtn" type="button" hidden>
+    <span aria-hidden="true">←</span> к ядру
+  </button>
+
+  <!-- ================= ПАНЕЛИ ================= -->
+
+  <!-- Проекты -->
+  <section class="panel" id="panel-projects" hidden aria-label="Проекты">
+    <button class="panel-close" type="button" aria-label="Закрыть">×</button>
+    <p class="panel-eyebrow">01 — станция</p>
+    <h2 class="panel-title">Проекты</h2>
+    <p class="panel-lead">Три вещи, которые я довёл до состояния «показываю не стыдясь».</p>
+
+    <ul class="panel-list">
+      <li>
+        <span class="li-title">Orbit Analytics</span>
+        <span class="li-text">Панель для продуктовой аналитики. 40 тысяч точек на графике и ни одного подлагивания: canvas вместо DOM, собственный рендер.</span>
+        <span class="li-tags"><b>React</b><b>D3</b><b>Canvas</b></span>
+      </li>
+      <li>
+        <span class="li-title">Nebula Editor</span>
+        <span class="li-text">Блочный редактор с офлайн-режимом и конфликт-резолвером. Курсор появляется на 90 мс раньше, чем пользователь успевает его хотеть.</span>
+        <span class="li-tags"><b>TypeScript</b><b>CRDT</b><b>IndexedDB</b></span>
+      </li>
+      <li>
+        <span class="li-title">Cosmic Portfolio</span>
+        <span class="li-text">То, что вы сейчас видите. Three.js, кастомные шейдеры, 60 кадров в секунду на ноутбуке и на телефоне.</span>
+        <span class="li-tags"><b>Three.js</b><b>GLSL</b><b>GSAP</b></span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Навыки -->
+  <section class="panel" id="panel-skills" hidden aria-label="Навыки">
+    <button class="panel-close" type="button" aria-label="Закрыть">×</button>
+    <p class="panel-eyebrow">02 — станция</p>
+    <h2 class="panel-title">Навыки</h2>
+    <p class="panel-lead">То, в чём я уверен настолько, что беру за это деньги.</p>
+
+    <div class="skills">
+      <div class="skill"><span>Three.js / WebGL</span><i style="--v:95%"></i></div>
+      <div class="skill"><span>JavaScript / TypeScript</span><i style="--v:93%"></i></div>
+      <div class="skill"><span>React</span><i style="--v:90%"></i></div>
+      <div class="skill"><span>GLSL / шейдеры</span><i style="--v:78%"></i></div>
+      <div class="skill"><span>CSS / анимация</span><i style="--v:88%"></i></div>
+      <div class="skill"><span>Node.js</span><i style="--v:75%"></i></div>
+      <div class="skill"><span>Python</span><i style="--v:64%"></i></div>
+    </div>
+
+    <p class="panel-note">Плюс: дизайн-системы, доступность, оптимизация рендера, немного звука.</p>
+  </section>
+
+  <!-- Контакты -->
+  <section class="panel" id="panel-contacts" hidden aria-label="Контакты">
+    <button class="panel-close" type="button" aria-label="Закрыть">×</button>
+    <p class="panel-eyebrow">03 — станция</p>
+    <h2 class="panel-title">Контакты</h2>
+    <p class="panel-lead">Чёрная дыра всё притянула — вам осталось написать.</p>
+
+    <ul class="contacts">
+      <li><a href="mailto:hello@nova.studio"><span>Почта</span><b>hello@nova.studio</b></a></li>
+      <li><a href="https://t.me/" target="_blank" rel="noopener"><span>Telegram</span><b>@nova</b></a></li>
+      <li><a href="https://github.com/" target="_blank" rel="noopener"><span>GitHub</span><b>github.com/nova</b></a></li>
+      <li><a href="https://www.behance.net/" target="_blank" rel="noopener"><span>Behance</span><b>be.net/nova</b></a></li>
+    </ul>
+
+    <p class="panel-note">Отвечаю в течение суток. Обычно быстрее.</p>
+  </section>
+
+  <!-- подсказки -->
+  <div class="help" id="help" hidden>
+    <p class="help-title">Управление</p>
+    <ul>
+      <li><span>Мышь</span> вращать камеру вокруг ядра</li>
+      <li><span>Колесо</span> приблизить или отдалить</li>
+      <li><span>Клик по ядру</span> раскрыть станцию</li>
+      <li><span>Наведение на орбиту</span> фокус и приближение</li>
+      <li><span>Esc</span> вернуться к ядру</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- Кастомный курсор -->
+<div id="cursor" class="cursor" aria-hidden="true">
+  <span class="cursor-ring"></span>
+  <span class="cursor-dot"></span>
+</div>
+
+<!-- =====================================================================
+     5. БИБЛИОТЕКИ
+     Обычные скрипты, не модули: так страница работает и с диска,
+     без локального сервера (ES-модули на file:// блокируются CORS).
+     ===================================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/shaders/FilmShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/shaders/BokehShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/MaskPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/BokehPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/postprocessing/FilmPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+<!-- =====================================================================
+     6. МОДУЛИ ПРОЕКТА
+     Порядок важен: config → утилиты → сцена → объекты → пост → UI
+     ===================================================================== -->
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/lights.js"></script>
+<script src="js/nebula.js"></script>
+<script src="js/crystal.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/postfx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/cursor.js"></script>
+<script src="js/interactions.js"></script>
+<script src="js/preloader.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>
